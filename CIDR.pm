@@ -2,10 +2,12 @@
 #
 # Copyright 2001 Sam Varshavchik.
 #
+# with contributions from David Cantrell.
+#
 # This program is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
 #
-# $Revision: 1.9 $
+# $Revision: 1.11 $
 
 package Net::CIDR;
 
@@ -16,6 +18,8 @@ require 5.000;
 require Exporter;
 # use AutoLoader qw(AUTOLOAD);
 use Carp;
+
+use Math::BigInt;
 
 @ISA = qw(Exporter);
 
@@ -32,6 +36,7 @@ use Carp;
 				    cidradd
 				    cidrlookup
 				    cidrvalidate
+				    addr2cidr
 				    ) ] );
 
 @EXPORT_OK = ( qw( range2cidr
@@ -40,13 +45,14 @@ use Carp;
 		       cidradd
 		       cidrlookup
 		       cidrvalidate
+		       addr2cidr
 		       ));
 
 @EXPORT = qw(
 	
 );
 
-$VERSION = "0.03";
+$VERSION = "0.04";
 
 1;
 
@@ -138,6 +144,23 @@ Net::CIDR - Manipulate IPv4/IPv6 netblocks in CIDR notation
     #
     # 1
 
+    @list = Net::CIDR::addr2cidr("192.68.0.31");
+    print join("\n", @list);
+    #
+    # Output from above:
+    #
+    # 192.68.0.31/32
+    # 192.68.0.30/31
+    # 192.68.0.28/30
+    # 192.68.0.24/29
+    # 192.68.0.16/28
+    # 192.68.0.0/27
+    # 192.68.0.0/26
+    # 192.68.0.0/25
+    # 192.68.0.0/24
+    # 192.68.0.0/23
+    # [and so on]
+
 =head1 DESCRIPTION
 
 The Net::CIDR package contains functions that manipulate lists of IP
@@ -149,12 +172,21 @@ The Net::CIDR functions handle both IPv4 and IPv6 addresses.
 Each element in the @range_list is a string "start-finish", where
 "start" is the first IP address and "finish" is the last IP address.
 range2cidr() converts each range into an equivalent CIDR netblock.
+It returns a list of netblocks except in the case where it is given
+only one parameter and is called in scalar context.
+
 For example:
 
     @a=Net::CIDR::range2cidr("192.68.0.0-192.68.255.255");
 
 The result is a one-element array, with $a[0] being "192.68.0.0/16".
 range2cidr() processes each "start-finish" element in @range_list separately.
+But if invoked like so:
+
+    $a=Net::CIDR::range2cidr("192.68.0.0-192.68.255.255");
+
+The result is a scalar "192.68.0.0/16".
+
 Where each element cannot be expressed as a single CIDR netblock
 range2cidr() will generate as many CIDR netblocks as are necessary to cover
 the full range of IP addresses.  Example:
@@ -189,6 +221,23 @@ The result is a one-element array:
 
 cidr2range() does not merge adjacent or overlapping netblocks in
 @cidr_list.
+
+=head2 @netblock_list = Net::CIDR::addr2cidr($address);
+
+The addr2cidr function takes an IP address and returns a list of all
+the CIDR netblocks it might belong to:
+
+    @a=Net::CIDR::addr2range('192.68.0.31');
+
+The result is a thirtythree-element array:
+('192.68.0.31/32', '192.68.0.30/31', '192.68.0.28/30', '192.68.0.24/29',
+ [and so on])
+consisting of all the possible subnets containing this address from
+0.0.0.0/0 to address/32.
+
+Any addresses supplied to addr2range after the first will be ignored.
+It works similarly for IPv6 addresses, returning a list of one hundred
+and twenty nine elements.
 
 =cut
 
@@ -398,6 +447,46 @@ sub _cidr2iprange {
 }
 
 #
+# ADDRESS to list of CIDR netblocks
+#
+
+sub addr2cidr {
+	my(@blocks, $address, $bitmask, $net, $octetstash) = ();
+	my($isIPv6, $addr) = _ipv6to4(shift);
+	my $bitsInAddress = ($isIPv6)?128:32;
+
+	# create BigInts if necessary.  Straight assignment of ints to
+	# BigInts breaks BigInt-ness hence the bizarre subtractions later.
+	if($isIPv6) {
+		$address = new Math::BigInt 0;
+		$bitmask = new Math::BigInt 0;
+		$net = new Math::BigInt 0;
+		$octetstash = new Math::BigInt 0;
+	} else { ($address, $bitmask, $net, $octetstash) = 0; }
+
+	# convert dotted-octets into an int (or BigInt)
+	do { $address = $address << 8; $address = $address + $_ }
+		for split(/\./, $addr);
+
+	foreach my $bits (reverse 0..$bitsInAddress) {
+		$octetstash = $octetstash - $octetstash + 255;
+		$bitmask = $bitmask - $bitmask;
+		for(1 .. $bits) { $bitmask = ($bitmask << 1) + 1; }
+		$bitmask = $bitmask << ($bitsInAddress - $bits);
+		
+		$net = $address & $bitmask;
+		push @blocks, (map { $_ =~ s/\+//; (($isIPv6)?_ipv4to6($_):$_) }
+		    join('.', reverse map {
+			my $temp = ($octetstash & $net) >> ($_ * 8);
+			$octetstash = $octetstash << 8;
+			$temp;
+		    } (0 .. $bitsInAddress / 8 - 1)
+		))[0]."/$bits";
+	}
+	return @blocks;
+}
+
+#
 # START-FINISH to CIDR list
 #
 
@@ -453,7 +542,8 @@ sub range2cidr {
 	    push @c, "$a/$b";
 	}
     }
-    return @c;
+    return @c unless(1==@r && 1==@c && !wantarray());
+    return $c[0];
 }
 
 sub _range2cidr {
@@ -1070,13 +1160,15 @@ sub cidrvalidate {
 Garbage in, garbage out.
 Always use validate() before doing anything with untrusted input.
 Otherwise,
-"slightly" invalid input will word (extraneous whitespace
+"slightly" invalid input will work (extraneous whitespace
 is generally OK),
-but you're totally off the wall the functions will croak.
+but the functions will croak if you're totally off the wall.
 
 =head1 AUTHOR
 
 Sam Varshavchik <sam@email-scan.com>
+
+With some contributions from David Cantrell <david@cantrell.org.uk>
 
 =cut
 

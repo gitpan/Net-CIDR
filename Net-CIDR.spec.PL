@@ -1,4 +1,4 @@
-#$Revision: 1.2 $
+#$Revision: 1.6 $
 do 'CIDR.pm';
 
 open (X, ">Net-CIDR.spec") || die "$!\n";
@@ -12,10 +12,10 @@ close(X);
 __END__
 
 Summary: Net::CIDR Perl module
-Name: Net-CIDR
+Name: perl-net-cidr
 Version: @VERSION@
 Release: 1
-Source0: %{name}-%{version}.tar.gz
+Source0: Net-CIDR-%{version}.tar.gz
 License: Perl
 Group: Development/Languages
 BuildRoot: %{_tmppath}/%{name}-root
@@ -24,7 +24,7 @@ BuildRoot: %{_tmppath}/%{name}-root
 The Net::CIDR perl module manipulates IPv4/IPv6 netblocks in CIDR notation
 
 %prep
-%setup -q
+%setup -q -n Net-CIDR-%{version}
 %{__perl} Makefile.PL
 %build
 %{__make}
@@ -42,6 +42,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man3/*
 
 %changelog
+* Fri Nov  2 2001 Mr. Sam <mrsam@courier-mta.com>
+- Changed package name to perl-net-cidr
+
 * Tue Jun 26 2001 Mr. Sam <mrsam@courier-mta.com>
 - Initial build.
 
