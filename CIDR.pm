@@ -1,13 +1,13 @@
 # Net::CIDR
 #
-# Copyright 2001 Sam Varshavchik.
+# Copyright 2001-2002 Sam Varshavchik.
 #
 # with contributions from David Cantrell.
 #
 # This program is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
 #
-# $Revision: 1.11 $
+# $Revision: 1.12 $
 
 package Net::CIDR;
 
@@ -52,7 +52,7 @@ use Math::BigInt;
 	
 );
 
-$VERSION = "0.04";
+$VERSION = "0.07";
 
 1;
 
@@ -462,7 +462,7 @@ sub addr2cidr {
 		$bitmask = new Math::BigInt 0;
 		$net = new Math::BigInt 0;
 		$octetstash = new Math::BigInt 0;
-	} else { ($address, $bitmask, $net, $octetstash) = 0; }
+	} else { ($address, $bitmask, $net, $octetstash) = (0, 0, 0, 0); }
 
 	# convert dotted-octets into an int (or BigInt)
 	do { $address = $address << 8; $address = $address + $_ }
@@ -1130,7 +1130,7 @@ sub cidrvalidate {
 
 	foreach (@o)
 	{
-	    return if /^0/;
+	    return if /^0./;
 	    return if $_ < 0 || $_ > 255;
 	}
 	return $v;
