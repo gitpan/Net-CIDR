@@ -1,13 +1,13 @@
 # Net::CIDR
 #
-# Copyright 2001-2002 Sam Varshavchik.
+# Copyright 2001-2003 Sam Varshavchik.
 #
 # with contributions from David Cantrell.
 #
 # This program is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
 #
-# $Revision: 1.12 $
+# $Revision: 1.14 $
 
 package Net::CIDR;
 
@@ -37,6 +37,7 @@ use Math::BigInt;
 				    cidrlookup
 				    cidrvalidate
 				    addr2cidr
+                                    addrandmask2cidr
 				    ) ] );
 
 @EXPORT_OK = ( qw( range2cidr
@@ -46,13 +47,14 @@ use Math::BigInt;
 		       cidrlookup
 		       cidrvalidate
 		       addr2cidr
+                       addrandmask2cidr
 		       ));
 
 @EXPORT = qw(
 	
 );
 
-$VERSION = "0.07";
+$VERSION = "0.08";
 
 1;
 
@@ -161,6 +163,12 @@ Net::CIDR - Manipulate IPv4/IPv6 netblocks in CIDR notation
     # 192.68.0.0/23
     # [and so on]
 
+    print Net::CIDR::addrandmask2cidr("195.149.50.61", "255.255.255.248")."\n";
+    #
+    # Output from above:
+    #
+    # 195.149.50.56/29
+
 =head1 DESCRIPTION
 
 The Net::CIDR package contains functions that manipulate lists of IP
@@ -238,6 +246,20 @@ consisting of all the possible subnets containing this address from
 Any addresses supplied to addr2range after the first will be ignored.
 It works similarly for IPv6 addresses, returning a list of one hundred
 and twenty nine elements.
+
+=head2 $cidr=Net::CIDR::addrandmask2cidr($address, $netmask);
+
+The addrandmask2cidr function takes an IP address and a netmask, and
+returns the CIDR range whose size fits the netmask and which contains
+the address.  It is an error to supply one parameter in IPv4-ish
+format and the other in IPv6-ish format, and it is an error to supply
+a netmask which does not consist solely of 1 bits followed by 0 bits.
+For example, '255.255.248.192' is an invalid netmask, as is
+'255.255.255.32' because both contain 0 bits in between 1 bits.
+
+Technically speaking both of those *are* valid netmasks, but a) you'd
+have to be insane to use them, and b) there's no corresponding CIDR
+range.
 
 =cut
 
@@ -484,6 +506,34 @@ sub addr2cidr {
 		))[0]."/$bits";
 	}
 	return @blocks;
+}
+
+# Address and netmask to CIDR
+
+sub addrandmask2cidr {
+        my $address = shift;
+	my($a_isIPv6) = _ipv6to4($address);
+        my($n_isIPv6, $netmask) = _ipv6to4(shift);
+	die("Both address and netmask must be the same type")
+	    if($a_isIPv6 != $n_isIPv6);
+        my $bitsInNetmask = 0;
+        my $previousNMoctet = 255;
+        foreach my $octet (split/\./, $netmask) {
+            die("Invalid netmask") if($previousNMoctet != 255 && $octet != 0);
+            $previousNMoctet = $octet;
+	    $bitsInNetmask +=
+		($octet == 255) ? 8 :
+		($octet == 254) ? 7 :
+		($octet == 252) ? 6 :
+		($octet == 248) ? 5 :
+		($octet == 240) ? 4 :
+		($octet == 232) ? 3 :
+		($octet == 192) ? 2 :
+		($octet == 128) ? 1 :
+		($octet == 0) ? 0 :
+                die("Invalid netmask");
+	}
+        return (grep { /\/$bitsInNetmask$/ } addr2cidr($address))[0];
 }
 
 #

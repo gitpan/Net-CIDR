@@ -4,3 +4,7 @@ Revision history for Perl extension Net::CIDR.
 	- original version; created by h2xs 1.20 with options
 		-X -n Net::CIDR
 
+0.08 Wed Aug 13 00:41:58 EDT 2003
+        - decided to start keeping this Changelog again :-)
+        - Added David Cantrell's addrandmask2cidr function.
+	- fixed a few bugs.

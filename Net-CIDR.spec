@@ -1,12 +1,12 @@
 
 Summary: Net::CIDR Perl module
 Name: perl-Net-CIDR
-Version: 0.07
+Version: 0.08
 Release: 1%(%{__perl} -e 'my $v=$^V; $v =~ s/(.)/".".ord($1)/ge;print "$v\n";')
 Source0: Net-CIDR-%{version}.tar.gz
 License: Perl
 Group: Development/Languages
-BuildRoot: %{_tmppath}/%{name}-root
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 BuildArch: noarch
 BuildPreReq: perl
 
@@ -33,6 +33,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man3/*
 
 %changelog
+* Wed Aug 13 2003 Mr. Sam <sam@email-scan.com>
+- Use preferred BuildRoot
+
 * Sun Mar 31 2002 Mr. Sam <sam@email-scan.com>
 - Changed package name to perl-Net-CIDR
 
