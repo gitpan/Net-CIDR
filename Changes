@@ -11,3 +11,7 @@ Revision history for Perl extension Net::CIDR.
 
 0.09 Tue Nov 18 19:01:50 EST 2003
 	- Fix addrandmask2cidr computation of /27s.
+
+0.10 Mon Jul 19 19:45:33 EDT 2004
+        - Fix warning in addrandmask2cidr
+	- Fix validation of IPv6 addresses.  1:2 is not a valid Ipv6 address.

@@ -7,7 +7,7 @@
 # This program is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
 #
-# $Revision: 1.15 $
+# $Revision: 1.16 $
 
 package Net::CIDR;
 
@@ -54,7 +54,7 @@ use Math::BigInt;
 	
 );
 
-$VERSION = "0.09";
+$VERSION = "0.10";
 
 1;
 
@@ -515,7 +515,7 @@ sub addrandmask2cidr {
 	my($a_isIPv6) = _ipv6to4($address);
         my($n_isIPv6, $netmask) = _ipv6to4(shift);
 	die("Both address and netmask must be the same type")
-	    if($a_isIPv6 != $n_isIPv6);
+	    if( defined($a_isIPv6) && defined($n_isIPv6) && $a_isIPv6 != $n_isIPv6);
         my $bitsInNetmask = 0;
         my $previousNMoctet = 255;
         foreach my $octet (split/\./, $netmask) {
@@ -1193,7 +1193,7 @@ sub cidrvalidate {
 
     my @o=grep (/./, split(/:/, $v));
 
-    return undef if $#o >= 8;
+    return undef if ($#o >= 8 || ($#o<7 && $v !~ /::/));
 
     foreach (@o)
     {
