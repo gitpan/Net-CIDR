@@ -7,7 +7,7 @@
 # This program is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
 #
-# $Revision: 1.14 $
+# $Revision: 1.15 $
 
 package Net::CIDR;
 
@@ -54,7 +54,7 @@ use Math::BigInt;
 	
 );
 
-$VERSION = "0.08";
+$VERSION = "0.09";
 
 1;
 
@@ -527,7 +527,7 @@ sub addrandmask2cidr {
 		($octet == 252) ? 6 :
 		($octet == 248) ? 5 :
 		($octet == 240) ? 4 :
-		($octet == 232) ? 3 :
+		($octet == 224) ? 3 :
 		($octet == 192) ? 2 :
 		($octet == 128) ? 1 :
 		($octet == 0) ? 0 :

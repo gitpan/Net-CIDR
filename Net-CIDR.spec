@@ -1,7 +1,7 @@
 
 Summary: Net::CIDR Perl module
 Name: perl-Net-CIDR
-Version: 0.08
+Version: 0.09
 Release: 1%(%{__perl} -e 'my $v=$^V; $v =~ s/(.)/".".ord($1)/ge;print "$v\n";')
 Source0: Net-CIDR-%{version}.tar.gz
 License: Perl
@@ -22,7 +22,7 @@ The Net::CIDR perl module manipulates IPv4/IPv6 netblocks in CIDR notation
 %install
 rm -rf $RPM_BUILD_ROOT
 %{__make} install
-find $RPM_BUILD_ROOT -name .packlist -exec rm -f {} \;
+find $RPM_BUILD_ROOT \( -name .packlist -o -name perllocal.pod \) -exec rm -f {} \;
 
 %clean
 rm -rf $RPM_BUILD_ROOT

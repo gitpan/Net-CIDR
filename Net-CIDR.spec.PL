@@ -1,4 +1,4 @@
-#$Revision: 1.8 $
+#$Revision: 1.9 $
 do 'CIDR.pm';
 
 open (X, ">Net-CIDR.spec") || die "$!\n";
@@ -34,7 +34,7 @@ The Net::CIDR perl module manipulates IPv4/IPv6 netblocks in CIDR notation
 %install
 rm -rf $RPM_BUILD_ROOT
 %{__make} install
-find $RPM_BUILD_ROOT -name .packlist -exec rm -f {} \;
+find $RPM_BUILD_ROOT \( -name .packlist -o -name perllocal.pod \) -exec rm -f {} \;
 
 %clean
 rm -rf $RPM_BUILD_ROOT

@@ -8,3 +8,6 @@ Revision history for Perl extension Net::CIDR.
         - decided to start keeping this Changelog again :-)
         - Added David Cantrell's addrandmask2cidr function.
 	- fixed a few bugs.
+
+0.09 Tue Nov 18 19:01:50 EST 2003
+	- Fix addrandmask2cidr computation of /27s.
