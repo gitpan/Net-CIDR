@@ -5,7 +5,7 @@
 # This program is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
 #
-# $Revision: 1.8 $
+# $Revision: 1.9 $
 
 package Net::CIDR;
 
@@ -46,7 +46,7 @@ use Carp;
 	
 );
 
-$VERSION = "0.02";
+$VERSION = "0.03";
 
 1;
 
@@ -834,14 +834,14 @@ sub cidradd {
 
     for ($i=0; $i <= $#a; $i++)
     {
-	last if _ipcmp($lo, $hi) == 0;
+	last if _ipcmp($lo, $hi) > 0;
 
 	next if _ipcmp($b[$i], $lo) < 0;
 	next if _ipcmp($hi, $a[$i]) < 0;
 
 	if (_ipcmp($a[$i],$lo) <= 0 && _ipcmp($hi, $b[$i]) <= 0)
 	{
-	    $lo=$hi;
+	    $lo=_add1($hi);
 	    last;
 	}
 
@@ -861,7 +861,7 @@ sub cidradd {
 	$b[$i]=undef;
     }
 
-    unless (_ipcmp($lo, $hi) == 0)
+    unless (_ipcmp($lo, $hi) > 0)
     {
 	push @a, $lo;
 	push @b, $hi;
