@@ -1,0 +1,9 @@
+CIDR.pm
+Changes
+MANIFEST
+Makefile.PL
+test.pl
+COPYING
+README
+Net-CIDR.spec
+Net-CIDR.spec.PL
