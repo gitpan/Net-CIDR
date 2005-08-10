@@ -7,7 +7,7 @@
 # This program is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
 #
-# $Revision: 1.16 $
+# $Revision: 1.17 $
 
 package Net::CIDR;
 
@@ -54,7 +54,7 @@ use Math::BigInt;
 	
 );
 
-$VERSION = "0.10";
+$VERSION = "0.11";
 
 1;
 
@@ -1001,7 +1001,7 @@ sub cidradd {
 	$b[$i]=undef;
     }
 
-    unless (_ipcmp($lo, $hi) > 0)
+    unless ((! defined $lo) || (! defined $hi) || _ipcmp($lo, $hi) > 0)
     {
 	push @a, $lo;
 	push @b, $hi;
