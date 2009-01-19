@@ -1,13 +1,13 @@
 # Net::CIDR
 #
-# Copyright 2001-2003 Sam Varshavchik.
+# Copyright 2001-2009 Sam Varshavchik.
 #
 # with contributions from David Cantrell.
 #
 # This program is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
 #
-# $Revision: 1.17 $
+# $Revision: 1.19 $
 
 package Net::CIDR;
 
@@ -54,7 +54,7 @@ use Math::BigInt;
 	
 );
 
-$VERSION = "0.11";
+$VERSION = "0.13";
 
 1;
 
@@ -235,7 +235,7 @@ cidr2range() does not merge adjacent or overlapping netblocks in
 The addr2cidr function takes an IP address and returns a list of all
 the CIDR netblocks it might belong to:
 
-    @a=Net::CIDR::addr2range('192.68.0.31');
+    @a=Net::CIDR::addr2cidr('192.68.0.31');
 
 The result is a thirtythree-element array:
 ('192.68.0.31/32', '192.68.0.30/31', '192.68.0.28/30', '192.68.0.24/29',
@@ -243,7 +243,7 @@ The result is a thirtythree-element array:
 consisting of all the possible subnets containing this address from
 0.0.0.0/0 to address/32.
 
-Any addresses supplied to addr2range after the first will be ignored.
+Any addresses supplied to addr2cidr after the first will be ignored.
 It works similarly for IPv6 addresses, returning a list of one hundred
 and twenty nine elements.
 
@@ -290,10 +290,11 @@ sub cidr2range {
 	my @ips= split (/\.+/, $ip);
 
 	grep {
-	    croak unless $_ >= 0 && $_ <= 255 && $_ =~ /^[0-9]+$/;
+	    croak "$_, as in '$cidr', is not a byte" unless $_ >= 0 && $_ <= 255 && $_ =~ /^[0-9]+$/;
 	} @ips;
 
-	croak unless $pfix >= 0 && $pfix <= ($#ips+1) * 8 && $pfix =~ /^[0-9]+$/;
+	croak "$pfix, as in '$cidr', does not make sense"
+	    unless $pfix >= 0 && $pfix <= ($#ips+1) * 8 && $pfix =~ /^[0-9]+$/;
 
 	my @rr=_cidr2iprange($pfix, @ips);
 
@@ -848,10 +849,11 @@ sub cidr2octets {
 	my @ips= split (/\.+/, $ip);
 
 	grep {
-	    croak unless $_ >= 0 && $_ <= 255 && $_ =~ /^[0-9]+$/;
+	    croak "$_, as in '$cidr', is not a byte" unless $_ >= 0 && $_ <= 255 && $_ =~ /^[0-9]+$/;
 	} @ips;
 
-	croak unless $pfix >= 0 && $pfix <= ($#ips+1) * 8 && $pfix =~ /^[0-9]+$/;
+	croak "$pfix, as in '$cidr', does not make sense"
+	    unless $pfix >= 0 && $pfix <= ($#ips+1) * 8 && $pfix =~ /^[0-9]+$/;
 
 	my $i;
 
@@ -866,7 +868,23 @@ sub cidr2octets {
 
 	if ($#ips < 0 || $bitsleft == 0)
 	{
-	    if ($isipv6)
+	    if ($pfix == 0 && $bitsleft == 0)
+	    {
+		foreach (0..255)
+		{
+		    my @n=($_);
+
+		    if ($isipv6)
+		    {
+			_push_ipv6_octets(\@r, \@n);
+		    }
+		    else
+		    {
+			push @r, $n[0];
+		    }
+		}
+	    }
+	    elsif ($isipv6)
 	    {
 		_push_ipv6_octets(\@r, \@msb);
 	    }

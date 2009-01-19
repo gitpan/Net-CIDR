@@ -18,3 +18,11 @@ Revision history for Perl extension Net::CIDR.
 
 0.11 Tue Aug  9 21:17:55 EDT 2005
 	- Fix croak in cidradd if adding after 255.255.255.255
+
+0.12 Thu Nov 30 23:40:18 EST 2006
+	- cidr2octets: 0.0.0.0/0 will expand out to the entire IPv4 address
+	space
+	- be more informative when we croak.
+
+0.13 Sun Jan 18 19:51:43 EST 2009
+        - Fix some documentation typos.
