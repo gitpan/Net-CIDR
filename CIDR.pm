@@ -1,13 +1,11 @@
 # Net::CIDR
 #
-# Copyright 2001-2009 Sam Varshavchik.
+# Copyright 2001-2010 Sam Varshavchik.
 #
 # with contributions from David Cantrell.
 #
 # This program is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
-#
-# $Revision: 1.19 $
 
 package Net::CIDR;
 
@@ -18,8 +16,6 @@ require 5.000;
 require Exporter;
 # use AutoLoader qw(AUTOLOAD);
 use Carp;
-
-use Math::BigInt;
 
 @ISA = qw(Exporter);
 
@@ -54,7 +50,7 @@ use Math::BigInt;
 	
 );
 
-$VERSION = "0.13";
+$VERSION = "0.14";
 
 1;
 
@@ -285,13 +281,10 @@ sub cidr2range {
 	my ($ip, $pfix)=($1, $2);
 
 	my $isipv6;
-	($isipv6, $ip)=_ipv6to4($ip);
 
-	my @ips= split (/\.+/, $ip);
+	my @ips=_iptoipa($ip);
 
-	grep {
-	    croak "$_, as in '$cidr', is not a byte" unless $_ >= 0 && $_ <= 255 && $_ =~ /^[0-9]+$/;
-	} @ips;
+	$isipv6=shift @ips;
 
 	croak "$pfix, as in '$cidr', does not make sense"
 	    unless $pfix >= 0 && $pfix <= ($#ips+1) * 8 && $pfix =~ /^[0-9]+$/;
@@ -419,6 +412,28 @@ sub _ipv4to6 {
     return join(":", splice (@words, 0, $ind)) . "::"
 	. join(":", @s);
 }
+
+# An IP address to an octet list.
+
+# Returns a list. First element, flag: true if it was an IPv6 flag. Remaining
+# values are octets.
+
+sub _iptoipa {
+    my $iparg=shift;
+
+    my $isipv6;
+    my $ip;
+
+    ($isipv6, $ip)=_ipv6to4($iparg);
+
+    my @ips= split (/\.+/, $ip);
+
+    grep {
+	croak "$_, in $iparg, is not a byte" unless $_ >= 0 && $_ <= 255 && $_ =~ /^[0-9]+$/;
+    } @ips;
+
+    return ($isipv6, @ips);
+}
     
 sub _h62d {
     my $h=shift;
@@ -474,39 +489,45 @@ sub _cidr2iprange {
 #
 
 sub addr2cidr {
-	my(@blocks, $address, $bitmask, $net, $octetstash) = ();
-	my($isIPv6, $addr) = _ipv6to4(shift);
-	my $bitsInAddress = ($isIPv6)?128:32;
+    my @ips=_iptoipa(shift);
 
-	# create BigInts if necessary.  Straight assignment of ints to
-	# BigInts breaks BigInt-ness hence the bizarre subtractions later.
-	if($isIPv6) {
-		$address = new Math::BigInt 0;
-		$bitmask = new Math::BigInt 0;
-		$net = new Math::BigInt 0;
-		$octetstash = new Math::BigInt 0;
-	} else { ($address, $bitmask, $net, $octetstash) = (0, 0, 0, 0); }
+    my $isipv6=shift @ips;
 
-	# convert dotted-octets into an int (or BigInt)
-	do { $address = $address << 8; $address = $address + $_ }
-		for split(/\./, $addr);
+    my $nbits;
 
-	foreach my $bits (reverse 0..$bitsInAddress) {
-		$octetstash = $octetstash - $octetstash + 255;
-		$bitmask = $bitmask - $bitmask;
-		for(1 .. $bits) { $bitmask = ($bitmask << 1) + 1; }
-		$bitmask = $bitmask << ($bitsInAddress - $bits);
-		
-		$net = $address & $bitmask;
-		push @blocks, (map { $_ =~ s/\+//; (($isIPv6)?_ipv4to6($_):$_) }
-		    join('.', reverse map {
-			my $temp = ($octetstash & $net) >> ($_ * 8);
-			$octetstash = $octetstash << 8;
-			$temp;
-		    } (0 .. $bitsInAddress / 8 - 1)
-		))[0]."/$bits";
+    if ($isipv6)
+    {
+	croak "An IPv6 address is 16 bytes long" unless $#ips == 15;
+	$nbits=128;
+    }
+    else
+    {
+	croak "An IPv4 address is 4 bytes long" unless $#ips == 3;
+	$nbits=32;
+    }
+
+    my @blocks;
+
+    foreach my $bits (reverse 0..$nbits)
+    {
+	my @ipcpy=@ips;
+
+	my $n=$bits;
+
+	while ($n < $nbits)
+	{
+	    @ipcpy[$n / 8] &= (0xFF00 >> ($n % 8));
+
+	    $n += 8;
+
+	    $n &= 0xF8;
 	}
-	return @blocks;
+
+	my $s=join(".", @ipcpy);
+
+	push @blocks, ($isipv6 ? _ipv4to6($s):$s) . "/$bits";
+    }
+    return @blocks;
 }
 
 # Address and netmask to CIDR
@@ -844,13 +865,9 @@ sub cidr2octets {
 
 	my $isipv6;
 
-	($isipv6, $ip)=_ipv6to4($ip);
+	my @ips=_iptoipa($ip);
 
-	my @ips= split (/\.+/, $ip);
-
-	grep {
-	    croak "$_, as in '$cidr', is not a byte" unless $_ >= 0 && $_ <= 255 && $_ =~ /^[0-9]+$/;
-	} @ips;
+	$isipv6=shift @ips;
 
 	croak "$pfix, as in '$cidr', does not make sense"
 	    unless $pfix >= 0 && $pfix <= ($#ips+1) * 8 && $pfix =~ /^[0-9]+$/;
@@ -1172,9 +1189,15 @@ sub cidrlookup {
 
 =head2 $ip=Net::CIDR::cidrvalidate($ip);
 
-Validate whether $ip is a valid IPv4 or IPv6 address.
+Validate whether $ip is a valid IPv4 or IPv6 address, or a CIDR.
 Returns its argument or undef.
 Spaces are removed, and IPv6 hexadecimal address are converted to lowercase.
+
+If $ip contains a "/", it must be a valid CIDR, otherwise it must be a valid
+IPv4 or an IPv6 address.
+
+A technically invalid CIDR, such as "192.168.0.1/24" fails validation, returning
+undef.
 
 =cut
 
@@ -1184,6 +1207,16 @@ sub cidrvalidate {
     $v =~ s/\s//g;
 
     $v=lc($v);
+
+    my $suffix;
+
+    ($v, $suffix)=($1, $2) if $v =~ m@(.*)/(.*)@;
+
+    if (defined $suffix)
+    {
+	return undef unless $suffix =~ /^\d+$/ &&
+	    ($suffix eq "0" || $suffix =~ /^[123456789]/);
+    }
 
     if ($v =~ /^([0-9\.]+)$/ || $v =~ /^::ffff:([0-9\.]+)$/ ||
 	$v =~ /^:([0-9\.]+)$/)
@@ -1201,7 +1234,25 @@ sub cidrvalidate {
 	    return if /^0./;
 	    return if $_ < 0 || $_ > 255;
 	}
-	return $v;
+
+	if ($v =~ /^::ffff/)
+	{
+	    $suffix=128 unless defined $suffix;
+
+	    return undef if $suffix < 128-32;
+
+	    $suffix -= 128-32;
+	}
+	else
+	{
+	    $suffix=32 unless defined $suffix;
+	}
+
+	foreach (addr2cidr($n))
+	{
+	    return $v if $_ eq "$n/$suffix";
+	}
+	return undef;
     }
 
     return undef unless $v =~ /^[0-9a-f:]+$/;
@@ -1218,7 +1269,13 @@ sub cidrvalidate {
 	return undef if length ($_) > 4;
     }
 
-    return $v;
+    $suffix=128 unless defined $suffix;
+
+    foreach (addr2cidr($v))
+    {
+	return $v if $_ eq "$v/$suffix";
+    }
+    return undef;
 }
 
 =pod
@@ -1226,7 +1283,7 @@ sub cidrvalidate {
 =head1 BUGS
 
 Garbage in, garbage out.
-Always use validate() before doing anything with untrusted input.
+Always use cidrvalidate() before doing anything with untrusted input.
 Otherwise,
 "slightly" invalid input will work (extraneous whitespace
 is generally OK),

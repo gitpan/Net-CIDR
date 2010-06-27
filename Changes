@@ -26,3 +26,9 @@ Revision history for Perl extension Net::CIDR.
 
 0.13 Sun Jan 18 19:51:43 EST 2009
         - Fix some documentation typos.
+
+0.14 Sun Jun 27 09:34:22 EDT 2010
+     	- corrected some documentation errors. cidrvalidate() will validate
+	either an IP address or a CIDR, either one. Reimplemented addr2cidr.
+	New implementation does not use Math::BigInt, much faster with ipv6
+	addresses.

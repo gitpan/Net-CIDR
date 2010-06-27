@@ -1,7 +1,7 @@
 
 Summary: Net::CIDR Perl module
 Name: perl-Net-CIDR
-Version: 0.13
+Version: 0.14
 Release: 1%(%{__perl} -e 'my $v=$^V; $v =~ s/(.)/".".ord($1)/ge;print "$v\n";')
 Source0: Net-CIDR-%{version}.tar.gz
 License: Perl
