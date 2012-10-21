@@ -7,3 +7,5 @@ COPYING
 README
 Net-CIDR.spec
 Net-CIDR.spec.PL
+META.yml                                 Module YAML meta-data (added by MakeMaker)
+META.json                                Module JSON meta-data (added by MakeMaker)
